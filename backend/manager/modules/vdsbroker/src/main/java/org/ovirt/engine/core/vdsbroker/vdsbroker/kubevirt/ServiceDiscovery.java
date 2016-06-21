@@ -23,7 +23,7 @@ public interface ServiceDiscovery {
      *
      * @param serviceName Service name
      * @param vdsId       Id of the host/node where we need the service from
-     * @return
+     * @return Connection URL as string
      */
     public String discover(@NotNull String serviceName, Guid vdsId);
 }

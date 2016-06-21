@@ -90,7 +90,7 @@ public class ProtocolDetector implements AutoCloseable {
         //TODO Kubevirt do something reasonable here
         if (vds.getName().startsWith("kubevirt")) {
             vds.setProtocol(VdsProtocol.KUBEVIRT);
-            resourceManager.AddVds(vds, false);
+            resourceManager.addVds(vds, false);
             return true;
         }
         return false;

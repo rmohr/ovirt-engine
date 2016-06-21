@@ -4,7 +4,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlValue;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 
 @lombok.Value
 @AllArgsConstructor

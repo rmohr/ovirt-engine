@@ -12,8 +12,6 @@ import lombok.Value;
 @AllArgsConstructor
 public class GraphicsDevice implements Device {
 
-    private final String family = "graphics";
-
     @XmlAttribute
     private String type;
 
@@ -23,4 +21,14 @@ public class GraphicsDevice implements Device {
     @XmlAttribute(name = "autoport")
     @JsonProperty("autoport")
     private Boolean autoPort;
+
+    @Override
+    public String getFamily() {
+        return "graphics";
+    }
+
+    @Override
+    public String getType() {
+        return type;
+    }
 }

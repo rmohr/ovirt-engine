@@ -12,8 +12,6 @@ import lombok.Value;
 @AllArgsConstructor
 public class ControllerDevice implements Device {
 
-    private final String family = "controller";
-
     @XmlAttribute
     private String type;
 
@@ -25,5 +23,15 @@ public class ControllerDevice implements Device {
 
     @XmlElement
     private PciAddress address;
+
+    @Override
+    public String getFamily() {
+        return "controller";
+    }
+
+    @Override
+    public String getType() {
+        return type;
+    }
 }
 

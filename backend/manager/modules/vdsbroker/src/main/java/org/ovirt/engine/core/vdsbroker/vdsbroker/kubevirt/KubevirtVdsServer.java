@@ -1,6 +1,10 @@
 package org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.security.cert.Certificate;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
@@ -10,7 +14,12 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 
 import org.apache.commons.httpclient.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.ovirt.engine.core.common.businessentities.VM;
+import org.ovirt.engine.core.common.businessentities.VmDevice;
+import org.ovirt.engine.core.common.utils.SizeConverter;
 import org.ovirt.engine.core.compat.Guid;
 import org.ovirt.engine.core.vdsbroker.gluster.GlusterHookContentInfoReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.gluster.GlusterHooksListReturnForXmlRpc;
@@ -29,27 +38,31 @@ import org.ovirt.engine.core.vdsbroker.gluster.GlusterVolumeSnapshotCreateReturn
 import org.ovirt.engine.core.vdsbroker.gluster.GlusterVolumeSnapshotInfoReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.gluster.GlusterVolumeStatusReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.gluster.GlusterVolumeTaskReturnForXmlRpc;
+import org.ovirt.engine.core.vdsbroker.gluster.GlusterVolumesHealInfoReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.gluster.GlusterVolumesListReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.gluster.OneStorageDeviceReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.gluster.StorageDeviceListReturnForXmlRpc;
-import org.ovirt.engine.core.vdsbroker.irsbroker.FileStatsReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.irsbroker.OneUuidReturnForXmlRpc;
+import org.ovirt.engine.core.vdsbroker.irsbroker.StatusReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.irsbroker.StoragePoolInfoReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.AlignmentScanReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.BooleanReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.DevicesVisibilityMapReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.FenceStatusReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.HostDevListReturnForXmlRpc;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.HostJobsReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.IQNListReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.IVdsServer;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.ImageSizeReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.LUNListReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.MigrateStatusReturnForXmlRpc;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.OneMapReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.OneStorageDomainInfoReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.OneStorageDomainStatsReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.OneVGReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.OneVmReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.OvfReturnForXmlRpc;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.PrepareImageReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.ServerConnectionStatusReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.SpmStatusReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.StatusOnlyReturnForXmlRpc;
@@ -58,10 +71,28 @@ import org.ovirt.engine.core.vdsbroker.vdsbroker.TaskInfoListReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.TaskStatusListReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.TaskStatusReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.VDSInfoReturnForXmlRpc;
-import org.ovirt.engine.core.vdsbroker.vdsbroker.VGListReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.VMInfoListReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.VMListReturnForXmlRpc;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.VdsBrokerObjectsBuilder;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.VolumeInfoReturnForXmlRpc;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.Clock;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.Cpu;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.Domain;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.PowerManagement;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.Quantity;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.Value;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.devices.ControllerDevice;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.devices.Devices;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.devices.GraphicsDevice;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.devices.PciAddress;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.devices.VideoDevice;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.features.AcpiFeature;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.features.ApicFeature;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.features.Feature;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.features.PaeFeature;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 public class KubevirtVdsServer implements IVdsServer {
 
@@ -72,6 +103,9 @@ public class KubevirtVdsServer implements IVdsServer {
 
     @Inject
     ServiceDiscovery serviceDiscovery;
+
+    @Inject
+    XmlMapper xmlMapper;
 
     public KubevirtVdsServer(Guid vdsId) {
         this.vdsId = vdsId;
@@ -94,20 +128,66 @@ public class KubevirtVdsServer implements IVdsServer {
 
     @Override
     public OneVmReturnForXmlRpc create(Map createInfo) {
+        VM vm = VdsBrokerObjectsBuilder.buildVmsDataFromExternalProvider(createInfo);
+        List<VmDevice> devices = VdsBrokerObjectsBuilder.buildVmDevices(createInfo);
+        Map<String, Feature> features =  new HashMap<>();
+        features.put(Feature.ACPI, new AcpiFeature());
+        features.put(Feature.APIC, new ApicFeature());
+        features.put(Feature.PAE, new PaeFeature());
+        Domain domain = Domain.builder()
+                .uuid(new Value<>(vm.getId().getUuid()))
+                .memory(Quantity.<Long>builder()
+                        .value(SizeConverter.convert(1000000 * vm.getMemSizeMb(), SizeConverter.SizeUnit.BYTES, SizeConverter.SizeUnit.KiB).longValue())
+                        .unit("KiB").<Long>build())
+                .type("kvm")
+                .devices(Devices.builder().emulator("/usr/bin/qemu-kvm")
+                        .video(Arrays.asList(
+                                VideoDevice.builder().type("cirrus").heads(1).vram(16384).address(
+                                        PciAddress.builder().domain(0).bus(0).slot(2).function(0).build()
+                                ).build()
+                        ))
+                        .graphics(Arrays.asList(new GraphicsDevice("vnc", "-1", true)))
+                        .controller(Arrays.asList(ControllerDevice.builder().type("usb").model("ich9-ehci1").index(1).build()))
+                        .build())
+                .id(23)
+                .features(features)
+                .onCrash("restart")
+                .onPoweroff("destroy")
+                .onReboot("restart")
+                .clock(Clock.builder().offset("utc").timer(
+                        Arrays.asList(
+                                Clock.Timer.builder().name("rtc").tickpolicy("catchup").build(),
+                                Clock.Timer.builder().name("pit").tickpolicy("delay").build(),
+                                Clock.Timer.builder().name("hpet").present(false).build()
+                        ))
+                        .build())
+                .cpu(Cpu.builder().match("exact").mode("custom").model(new Cpu.Model("allow", "kvm64"))
+                        .build())
+                .powerManagement(PowerManagement.builder()
+                        .suspendToDisk(new PowerManagement.Suspend(true))
+                        .suspendToMem(new PowerManagement.Suspend(false))
+                        .build())
+                .build();
+        String url = serviceDiscovery.discover("controller");
+        HttpPost httpRequest = new HttpPost(url);
+        try {
+            httpRequest.setEntity(new StringEntity(xmlMapper.writeValueAsString(domain)));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            httpClient.execute(httpRequest);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         // controller pod
-        return null;
+        return new OneVmReturnForXmlRpc(new HashMap<String, Object>());
     }
 
     @Override
-    public StatusOnlyReturnForXmlRpc createVolumeContainer(String sdUUID,
-            String imgGUID,
-            String size,
-            int volFormat,
-            int diskType,
-            String volUUID,
-            String descr,
-            String srcImgGUID,
-            String srcVolUUID) {
+    public StatusOnlyReturnForXmlRpc createVolumeContainer(String jobId, Map<String, Object> createVolumeInfo) {
         return null;
     }
 
@@ -199,6 +279,26 @@ public class KubevirtVdsServer implements IVdsServer {
         return null;
     }
 
+    @Override public StatusOnlyReturnForXmlRpc add_image_ticket(String ticketId,
+            String[] ops,
+            long timeout,
+            long size,
+            String url) {
+        return null;
+    }
+
+    @Override public StatusOnlyReturnForXmlRpc remove_image_ticket(String ticketId) {
+        return null;
+    }
+
+    @Override public StatusOnlyReturnForXmlRpc extend_image_ticket(String ticketId, long timeout) {
+        return null;
+    }
+
+    @Override public OneMapReturnForXmlRpc get_image_transfer_session_stats(String ticketId) {
+        return null;
+    }
+
     @Override
     public StatusOnlyReturnForXmlRpc desktopLogin(String vmId, String domain, String user, String password) {
         return null;
@@ -226,8 +326,7 @@ public class KubevirtVdsServer implements IVdsServer {
         return null;
     }
 
-    @Override
-    public StatusOnlyReturnForXmlRpc migrate(Map<String, String> migrationInfo) {
+    @Override public StatusOnlyReturnForXmlRpc migrate(Map<String, Object> migrationInfo) {
         return null;
     }
 
@@ -241,8 +340,29 @@ public class KubevirtVdsServer implements IVdsServer {
         return null;
     }
 
+    @Override public PrepareImageReturnForXmlRpc prepareImage(String spID,
+            String sdID,
+            String imageID,
+            String volumeID,
+            boolean allowIllegal) {
+        return null;
+    }
+
+    @Override public StatusReturnForXmlRpc teardownImage(String spId, String sdId, String imgGroupId, String imgId) {
+        return null;
+    }
+
+    @Override
+    public StatusReturnForXmlRpc verifyUntrustedVolume(String spId, String sdId, String imgGroupId, String imgId) {
+        return null;
+    }
+
     @Override
     public OneVmReturnForXmlRpc changeDisk(String vmId, String imageLocation) {
+        return null;
+    }
+
+    @Override public OneVmReturnForXmlRpc changeDisk(String vmId, Map<String, Object> driveSpec) {
         return null;
     }
 
@@ -253,20 +373,6 @@ public class KubevirtVdsServer implements IVdsServer {
 
     @Override
     public StatusOnlyReturnForXmlRpc monitorCommand(String vmId, String monitorCommand) {
-        return null;
-    }
-
-    @Override
-    public StatusOnlyReturnForXmlRpc setVmTicket(String vmId, String otp64, String sec) {
-        return null;
-    }
-
-    @Override
-    public StatusOnlyReturnForXmlRpc setVmTicket(String vmId,
-            String otp64,
-            String sec,
-            String connectionAction,
-            Map<String, String> params) {
         return null;
     }
 
@@ -410,32 +516,12 @@ public class KubevirtVdsServer implements IVdsServer {
     }
 
     @Override
-    public FileStatsReturnForXmlRpc getIsoList(String spUUID) {
-        return null;
-    }
-
-    @Override
-    public OneUuidReturnForXmlRpc createVG(String sdUUID, String[] deviceList) {
-        return null;
-    }
-
-    @Override
     public OneUuidReturnForXmlRpc createVG(String sdUUID, String[] deviceList, boolean force) {
         return null;
     }
 
     @Override
-    public VGListReturnForXmlRpc getVGList() {
-        return null;
-    }
-
-    @Override
     public OneVGReturnForXmlRpc getVGInfo(String vgUUID) {
-        return null;
-    }
-
-    @Override
-    public LUNListReturnForXmlRpc getDeviceList(int storageType) {
         return null;
     }
 
@@ -475,8 +561,7 @@ public class KubevirtVdsServer implements IVdsServer {
         return null;
     }
 
-    @Override
-    public StatusOnlyReturnForXmlRpc refreshStoragePool(String spUUID, String msdUUID, int masterVersion) {
+    @Override public HostJobsReturnForXmlRpc getHostJobs(String jobType, List<String> jobIds) {
         return null;
     }
 
@@ -585,15 +670,6 @@ public class KubevirtVdsServer implements IVdsServer {
             String[] brickList,
             int replicaCount,
             int stripeCount,
-            String[] transportList) {
-        return null;
-    }
-
-    @Override
-    public OneUuidReturnForXmlRpc glusterVolumeCreate(String volumeName,
-            String[] brickList,
-            int replicaCount,
-            int stripeCount,
             String[] transportList,
             boolean force) {
         return null;
@@ -655,14 +731,6 @@ public class KubevirtVdsServer implements IVdsServer {
     public StatusOnlyReturnForXmlRpc glusterVolumeBrickAdd(String volumeName,
             String[] bricks,
             int replicaCount,
-            int stripeCount) {
-        return null;
-    }
-
-    @Override
-    public StatusOnlyReturnForXmlRpc glusterVolumeBrickAdd(String volumeName,
-            String[] bricks,
-            int replicaCount,
             int stripeCount,
             boolean force) {
         return null;
@@ -680,8 +748,7 @@ public class KubevirtVdsServer implements IVdsServer {
         return null;
     }
 
-    @Override
-    public StatusOnlyReturnForXmlRpc glusterVolumeReplaceBrickStart(String volumeName,
+    @Override public StatusOnlyReturnForXmlRpc glusterVolumeReplaceBrickCommitForce(String volumeName,
             String existingBrickDir,
             String newBrickDir) {
         return null;
@@ -732,6 +799,14 @@ public class KubevirtVdsServer implements IVdsServer {
 
     @Override
     public GlusterVolumesListReturnForXmlRpc glusterVolumesList(Guid clusterId) {
+        return null;
+    }
+
+    @Override public GlusterVolumesListReturnForXmlRpc glusterVolumeInfo(Guid clusterId, String volumeName) {
+        return null;
+    }
+
+    @Override public GlusterVolumesHealInfoReturnForXmlRpc glusterVolumeHealInfo(String volumeName) {
         return null;
     }
 

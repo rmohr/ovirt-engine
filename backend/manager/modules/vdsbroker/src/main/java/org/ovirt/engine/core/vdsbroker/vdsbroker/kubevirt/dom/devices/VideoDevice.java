@@ -12,8 +12,6 @@ import lombok.Value;
 @AllArgsConstructor
 public class VideoDevice implements Device{
 
-    private final String family = "video";
-
     private String type;
 
     @XmlAttribute
@@ -24,4 +22,14 @@ public class VideoDevice implements Device{
 
     @XmlElement
     private PciAddress address;
+
+    @Override
+    public String getFamily() {
+        return "video";
+    }
+
+    @Override
+    public String getType() {
+        return type;
+    }
 }

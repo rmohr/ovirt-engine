@@ -20,24 +20,27 @@ import lombok.Builder;
 @XmlRootElement(name = "domain")
 public class Domain {
 
-    @XmlElement
-    @JsonProperty
-    private Value<UUID> uuid;
-
-    @XmlElement
-    private Quantity<Integer> memory;
-
-    @XmlElement
-    private Quantity<Integer> currentMemory;
-
-    @XmlElement
-    private VCpu vcpu;
-
     @XmlAttribute
     private String type;
 
     @XmlAttribute
     private Integer id;
+
+    @XmlElement
+    private String name;
+
+    @XmlElement
+    @JsonProperty
+    private Value<UUID> uuid;
+
+    @XmlElement
+    private Quantity<Long> memory;
+
+    @XmlElement
+    private Quantity<Long> currentMemory;
+
+    @XmlElement
+    private VCpu vcpu;
 
     @XmlElement
     private Map<String, Feature> features;

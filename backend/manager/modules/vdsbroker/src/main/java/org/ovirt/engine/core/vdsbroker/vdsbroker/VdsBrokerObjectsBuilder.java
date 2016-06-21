@@ -13,15 +13,20 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import javax.validation.constraints.NotNull;
 
 import org.apache.commons.lang.StringUtils;
 import org.ovirt.engine.core.bll.network.cluster.ManagementNetworkUtil;
@@ -49,6 +54,9 @@ import org.ovirt.engine.core.common.businessentities.VdsTransparentHugePagesStat
 import org.ovirt.engine.core.common.businessentities.VmBalloonInfo;
 import org.ovirt.engine.core.common.businessentities.VmBlockJob;
 import org.ovirt.engine.core.common.businessentities.VmBlockJobType;
+import org.ovirt.engine.core.common.businessentities.VmDevice;
+import org.ovirt.engine.core.common.businessentities.VmDeviceGeneralType;
+import org.ovirt.engine.core.common.businessentities.VmDeviceId;
 import org.ovirt.engine.core.common.businessentities.VmDynamic;
 import org.ovirt.engine.core.common.businessentities.VmExitReason;
 import org.ovirt.engine.core.common.businessentities.VmExitStatus;
@@ -147,6 +155,43 @@ public class VdsBrokerObjectsBuilder {
         }
 
         return vm;
+    }
+
+    public static List<VmDevice> buildVmDevices(@NotNull Map vm) {
+        Objects.requireNonNull(vm);
+
+        Guid vmId = new Guid((String) vm.get(VdsProperties.vm_guid));
+        Set<Guid> processedDevices = new HashSet<>();
+        List<VmDevice> vmDevices = new ArrayList<>();
+
+        for (Object o : (Object[]) vm.get(VdsProperties.Devices)) {
+            Map device = (Map<String, Object>) o;
+            vmDevices.add(buildNewVmDevice(vmId, device ));
+        }
+        return vmDevices;
+    }
+
+    private static VmDevice buildNewVmDevice(Guid vmId, Map device) {
+        Guid newDeviceId = Guid.Empty;
+        String typeName = (String) device.get(VdsProperties.Type);
+        String deviceName = (String) device.get(VdsProperties.Device);
+
+        String address = ((Map<String, String>) device.get(VdsProperties.Address)).toString();
+        String alias = StringUtils.defaultString((String) device.get(VdsProperties.Alias));
+        Object o = device.get(VdsProperties.SpecParams);
+        newDeviceId = Guid.createGuidFromString((String)device.get(VdsProperties.DeviceId));
+        VmDeviceId id = new VmDeviceId(newDeviceId, vmId);
+        VmDevice newDevice = new VmDevice(id, VmDeviceGeneralType.forValue(typeName), deviceName, address,
+                0,
+                o == null ? new HashMap<String, Object>() : (Map<String, Object>) o,
+                false,
+                true,
+                Boolean.getBoolean((String) device.get(VdsProperties.ReadOnly)),
+                alias,
+                null,
+                null,
+                null);
+        return newDevice;
     }
 
     /**

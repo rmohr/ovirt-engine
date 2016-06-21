@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.junit.Test;
+import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.JacksonFactory;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.devices.ControllerDevice;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.devices.Devices;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.devices.GraphicsDevice;
@@ -16,16 +17,9 @@ import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.features.ApicFeatu
 import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.features.Feature;
 import org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt.dom.features.PaeFeature;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.AnnotationIntrospector;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 
 public class DomainTest {
-
 
     @Test
     public void shouldConvertToXml() throws JsonProcessingException {
@@ -35,7 +29,8 @@ public class DomainTest {
         features.put(Feature.PAE, new PaeFeature());
         Domain domain = Domain.builder()
                 .uuid(new Value<UUID>(UUID.randomUUID()))
-                .memory(Quantity.<Integer>builder().value(1234).unit("KiB").build())
+                .name("test123")
+                .memory(Quantity.<Long>builder().value(1234L).unit("KiB").<Long>build())
                 .type("kvm")
                 .devices(Devices.builder().emulator("/usr/bin/qemu-kvm")
                         .video(Arrays.asList(
@@ -65,17 +60,11 @@ public class DomainTest {
                         .suspendToMem(new PowerManagement.Suspend(false))
                         .build())
                 .build();
-        ObjectMapper xmlMapper = new XmlMapper();
-        ObjectMapper jsonMapper = new ObjectMapper();
-        xmlMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        jsonMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        jsonMapper.registerModule(new GuavaModule());
-        AnnotationIntrospector introspector = new JaxbAnnotationIntrospector(xmlMapper.getTypeFactory());
-        // if ONLY using JAXB annotations:
-        xmlMapper.setAnnotationIntrospector(introspector);
 
-        System.out.println(xmlMapper.writerWithDefaultPrettyPrinter().writeValueAsString(domain));
-        System.out.println(jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(domain));
+        JacksonFactory jacksonFactory = new JacksonFactory();
+        jacksonFactory.prepare();
+        System.out.println(jacksonFactory.getXmlMapper().writerWithDefaultPrettyPrinter().writeValueAsString(domain));
+        System.out.println(jacksonFactory.getJsonMapper().writerWithDefaultPrettyPrinter().writeValueAsString(domain));
     }
 
 }

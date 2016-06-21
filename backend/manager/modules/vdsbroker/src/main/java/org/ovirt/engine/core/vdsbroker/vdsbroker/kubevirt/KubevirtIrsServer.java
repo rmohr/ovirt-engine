@@ -13,6 +13,7 @@ import org.ovirt.engine.core.vdsbroker.irsbroker.ImagesListReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.irsbroker.IrsStatsAndStatusXmlRpc;
 import org.ovirt.engine.core.vdsbroker.irsbroker.OneImageInfoReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.irsbroker.OneUuidReturnForXmlRpc;
+import org.ovirt.engine.core.vdsbroker.irsbroker.StatusReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.irsbroker.StoragePoolInfoReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.irsbroker.StorageStatusReturnForXmlRpc;
 import org.ovirt.engine.core.vdsbroker.irsbroker.UUIDListReturnForXmlRpc;
@@ -35,19 +36,8 @@ public class KubevirtIrsServer implements IIrsServer {
 
     }
 
-    @Override
-    public OneUuidReturnForXmlRpc createVolume(String sdUUID,
-            String spUUID,
-            String imgGUID,
-            String size,
-            int volFormat,
-            int volType,
-            int diskType,
-            String volUUID,
-            String descr,
-            String srcImgGUID,
-            String srcVolUUID) {
-        return null;
+    @Override public void close() {
+
     }
 
     @Override
@@ -151,16 +141,6 @@ public class KubevirtIrsServer implements IIrsServer {
     }
 
     @Override
-    public FileStatsReturnForXmlRpc getIsoList(String spUUID) {
-        return null;
-    }
-
-    @Override
-    public FileStatsReturnForXmlRpc getFloppyList(String spUUID) {
-        return null;
-    }
-
-    @Override
     public FileStatsReturnForXmlRpc getFileStats(String sdUUID, String pattern, boolean caseSensitive) {
         return null;
     }
@@ -201,10 +181,6 @@ public class KubevirtIrsServer implements IIrsServer {
         return null;
     }
 
-    @Override
-    public StatusOnlyReturnForXmlRpc extendStorageDomain(String sdUUID, String spUUID, String[] devlist) {
-        return null;
-    }
 
     @Override
     public StatusOnlyReturnForXmlRpc extendStorageDomain(String sdUUID,
@@ -313,6 +289,14 @@ public class KubevirtIrsServer implements IIrsServer {
             String imageUUID,
             String volumeUUID,
             String newSize) {
+        return null;
+    }
+
+    @Override public StatusReturnForXmlRpc setVolumeLegality(String spID,
+            String sdID,
+            String imageID,
+            String volumeID,
+            String legality) {
         return null;
     }
 }

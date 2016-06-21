@@ -10,6 +10,6 @@ public class TinyHexMarshaller extends XmlAdapter<String, Integer> {
 
     @Override
     public String marshal(Integer integer) throws Exception {
-        return (String.format("0x%01X", integer));
+        return String.format("0x%01X", integer);
     }
 }

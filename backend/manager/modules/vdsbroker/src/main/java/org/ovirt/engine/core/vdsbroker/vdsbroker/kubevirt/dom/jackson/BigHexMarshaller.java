@@ -10,6 +10,6 @@ public class BigHexMarshaller extends XmlAdapter<String, Integer> {
 
     @Override
     public String marshal(Integer integer) throws Exception {
-        return (String.format("0x%04X", integer));
+        return String.format("0x%04X", integer);
     }
 }
