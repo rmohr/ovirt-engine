@@ -58,7 +58,7 @@ public class SchedulingManagerTest extends TransactionalTestBase {
                 CpuFlagsManagerHandler.class,
                 ExternalSchedulerDiscovery.class
         };
-        return createDeployment(classes);
+        return createDeployment().addClasses(classes);
     }
 
     @Test

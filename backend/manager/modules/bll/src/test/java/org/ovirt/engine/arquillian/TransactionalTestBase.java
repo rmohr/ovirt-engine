@@ -54,15 +54,8 @@ public abstract class TransactionalTestBase {
 
     protected VM defaultVM;
 
-    public static JavaArchive createDeployment(){
-        return createDeployment(new ArrayList<>());
-    }
 
-    public static JavaArchive createDeployment(List<Class<?>> classes){
-        return createDeployment(classes.toArray(new Class<?>[classes.size()]));
-    }
-
-    public static JavaArchive createDeployment(Class<?>[] classes) {
+    public static JavaArchive createDeployment() {
         final Class<?>[] defaultClasses = {
                 DataSourceFactory.class,
                 CommonTestMocks.class,
@@ -72,9 +65,6 @@ public abstract class TransactionalTestBase {
         };
         final List<Class<?>> classList = new ArrayList<>();
         classList.addAll(Arrays.asList(defaultClasses));
-        if (classes != null && classes.length > 0){
-            classList.addAll(Arrays.asList(classes));
-        }
         return ShrinkWrap.create(JavaArchive.class)
                 .addPackages(true, Dao.class.getPackage()) // add all DAOs
                 .addPackage(AbstractBuilder.class.getPackage()) // add all builder

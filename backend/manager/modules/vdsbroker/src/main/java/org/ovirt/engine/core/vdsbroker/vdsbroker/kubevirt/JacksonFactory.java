@@ -1,6 +1,7 @@
 package org.ovirt.engine.core.vdsbroker.vdsbroker.kubevirt;
 
 import javax.annotation.PostConstruct;
+import javax.enterprise.inject.Produces;
 import javax.inject.Singleton;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -25,12 +26,12 @@ public class JacksonFactory {
                 xmlMapper.setAnnotationIntrospector(introspector);
         }
 
-        @Singleton
+        @Produces @Singleton
         public XmlMapper getXmlMapper() {
                 return xmlMapper;
         }
 
-        @Singleton
+        @Produces @Singleton
         public ObjectMapper getJsonMapper() {
                 return jsonMapper;
         }
