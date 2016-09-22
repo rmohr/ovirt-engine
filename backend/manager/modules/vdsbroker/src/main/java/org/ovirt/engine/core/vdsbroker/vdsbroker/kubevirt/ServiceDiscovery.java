@@ -16,7 +16,7 @@ public interface ServiceDiscovery {
      * @param serviceName System wide name of the service
      * @return Service HTTP connection URL
      */
-    public String discover(@NotNull String serviceName);
+    public String discover(@NotNull String serviceName, @NotNull String servicePort) throws ServiceNotFoundException;
 
     /**
      * Look up a service running on a specific host/node. Most likely you want a service out of a daemon set.
@@ -25,5 +25,5 @@ public interface ServiceDiscovery {
      * @param vdsId       Id of the host/node where we need the service from
      * @return Connection URL as string
      */
-    public String discover(@NotNull String serviceName, Guid vdsId);
+    public String discover(@NotNull String serviceName, Guid vdsId) throws ServiceNotFoundException;
 }
